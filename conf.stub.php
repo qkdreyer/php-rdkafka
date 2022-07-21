@@ -64,4 +64,7 @@ class TopicConf
 
     /** @tentative-return-type */
     public function setPartitioner(int $partitioner): void {}
+    
+    /** @tentative-return-type */
+    public function setPartitionerCb(callable $callback): void {}
 }
