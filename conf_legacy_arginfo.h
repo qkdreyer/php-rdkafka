@@ -42,6 +42,8 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RdKafka_TopicConf_setPartitioner, 0, 0, 1)
 	ZEND_ARG_INFO(0, partitioner)
 ZEND_END_ARG_INFO()
 
+#define arginfo_class_RdKafka_TopicConf_setPartitionerCb arginfo_class_RdKafka_Conf_setErrorCb
+
 
 ZEND_METHOD(RdKafka_Conf, __construct);
 ZEND_METHOD(RdKafka_Conf, dump);
@@ -56,6 +58,7 @@ ZEND_METHOD(RdKafka_Conf, setOffsetCommitCb);
 ZEND_METHOD(RdKafka_Conf, setLogCb);
 ZEND_METHOD(RdKafka_TopicConf, __construct);
 ZEND_METHOD(RdKafka_TopicConf, setPartitioner);
+ZEND_METHOD(RdKafka_TopicConf, setPartitionerCb);
 
 
 static const zend_function_entry class_RdKafka_Conf_methods[] = {
@@ -79,6 +82,7 @@ static const zend_function_entry class_RdKafka_TopicConf_methods[] = {
 	ZEND_MALIAS(RdKafka_Conf, dump, dump, arginfo_class_RdKafka_TopicConf_dump, ZEND_ACC_PUBLIC)
 	ZEND_MALIAS(RdKafka_Conf, set, set, arginfo_class_RdKafka_TopicConf_set, ZEND_ACC_PUBLIC)
 	ZEND_ME(RdKafka_TopicConf, setPartitioner, arginfo_class_RdKafka_TopicConf_setPartitioner, ZEND_ACC_PUBLIC)
+	ZEND_ME(RdKafka_TopicConf, setPartitionerCb, arginfo_class_RdKafka_TopicConf_setPartitionerCb, ZEND_ACC_PUBLIC)
 	ZEND_FE_END
 };
 

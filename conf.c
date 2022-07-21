@@ -66,6 +66,9 @@ void kafka_conf_callbacks_dtor(kafka_conf_callbacks *cbs) /* {{{ */
     cbs->offset_commit = NULL;
     kafka_conf_callback_dtor(cbs->log);
     cbs->log = NULL;
+    kafka_conf_callback_dtor(cbs->partitioner);
+    cbs->partitioner = NULL;
+
 } /* }}} */
 
 static void kafka_conf_callback_copy(kafka_conf_callback **to, kafka_conf_callback *from) /* {{{ */
@@ -86,6 +89,7 @@ void kafka_conf_callbacks_copy(kafka_conf_callbacks *to, kafka_conf_callbacks *f
     kafka_conf_callback_copy(&to->consume, from->consume);
     kafka_conf_callback_copy(&to->offset_commit, from->offset_commit);
     kafka_conf_callback_copy(&to->log, from->log);
+    kafka_conf_callback_copy(&to->paritioner, from->paritioner);
 } /* }}} */
 
 static void kafka_conf_free(zend_object *object) /* {{{ */
@@ -330,6 +334,38 @@ static void kafka_conf_log_cb(const rd_kafka_t *rk, int level, const char *facil
     ZVAL_STRING(&args[3], message);
 
     rdkafka_call_function(&cbs->log->fci, &cbs->log->fcc, NULL, 4, args);
+
+    zval_ptr_dtor(&args[0]);
+    zval_ptr_dtor(&args[1]);
+    zval_ptr_dtor(&args[2]);
+    zval_ptr_dtor(&args[3]);
+}
+
+static int32_t kafka_topic_conf_partitioner_cb(const rd_kafka_topic_t *rkt, const void *key, size_t keylen, int32_t partition_cnt, void *rkt_opaque, void *msg_opaque)
+{
+    zval args[4];
+
+    kafka_conf_callbacks *cbs = (kafka_conf_callbacks*) rd_kafka_opaque(rkt->rkt_rk);
+
+    if (!opaque) {
+        return;
+    }
+
+    if (!cbs->partitioner) {
+        return;
+    }
+
+    ZVAL_NULL(&args[0]);
+    ZVAL_NULL(&args[1]);
+    ZVAL_NULL(&args[2]);
+    ZVAL_NULL(&args[3]);
+
+    ZVAL_ZVAL(&args[0], &cbs->zrk, 1, 0);
+    ZVAL_STRING(&args[1], key);
+    ZVAL_LONG(&args[2], keylen);
+    ZVAL_LONG(&args[3], partition_cnt);
+
+    rdkafka_call_function(&cbs->partitioner->fci, &cbs->partitioner->fcc, NULL, 4, args);
 
     zval_ptr_dtor(&args[0]);
     zval_ptr_dtor(&args[1]);
@@ -759,6 +795,38 @@ PHP_METHOD(RdKafka_TopicConf, setPartitioner)
     }
 
     rd_kafka_topic_conf_set_partitioner_cb(intern->u.topic_conf, partitioner);
+}
+/* }}} */
+
+/* {{{ proto void RdKafka\TopicConf::setPartitionerCb(callable $callback)
+   Sets partitioner callback */
+PHP_METHOD(RdKafka_TopicConf, setPartitionerCb)
+{
+    zend_fcall_info fci;
+    zend_fcall_info_cache fcc;
+    kafka_conf_object *intern;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "f", &fci, &fcc) == FAILURE) {
+        return;
+    }
+
+    intern = get_kafka_conf_object(getThis());
+    if (!intern) {
+        return;
+    }
+
+    Z_ADDREF_P(&fci.function_name);
+
+    if (intern->cbs.partitioner) {
+        zval_ptr_dtor(&intern->cbs.partitioner->fci.function_name);
+    } else {
+        intern->cbs.partitioner = ecalloc(1, sizeof(*intern->cbs.partitioner));
+    }
+
+    intern->cbs.partitioner->fci = fci;
+    intern->cbs.partitioner->fcc = fcc;
+
+    rd_kafka_topic_conf_set_partitioner_cb(intern->u.topic_conf, kafka_topic_conf_partitioner_cb);
 }
 /* }}} */
 
